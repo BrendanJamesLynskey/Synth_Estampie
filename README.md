@@ -37,7 +37,7 @@ Plainsong ──► Organum ──► Ars Nova ──► (Renaissance polyphony)
 | App | Style | Synthesis technique |
 |---|---|---|
 | [Synth Gregorian](https://github.com/BrendanJamesLynskey/Synth_Gregorian) | Plainsong | Source–filter formant vocal synthesis |
-| [Synth Organum](https://github.com/BrendanJamesLynskey/Synth_Organum) | Notre-Dame polyphony | Formant vocal polyphony in Pythagorean just intonation |
+| [Synth Organum](https://github.com/BrendanJamesLynskey/Synth_Organum) | Notre-Dame polyphony | FOF vocal synthesis in Pythagorean just intonation |
 | [Synth Ars Nova](https://github.com/BrendanJamesLynskey/Synth_ArsNova) | 14th-c. isorhythm | Formant vocal synthesis + isorhythmic talea/color |
 | [Synth Troubadour](https://github.com/BrendanJamesLynskey/Synth_Troubadour) | Secular monophony | Formant vocal melody over a subtractive drone |
 | **Synth Estampie** (this) | Medieval dance | Physical modelling (instrumental dance) |
