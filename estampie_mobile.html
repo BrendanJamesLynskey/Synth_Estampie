@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Synth Estampie — Medieval Dance Synthesizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+/* === Synth Estampie — Styles (earthy secular: amber, forest-green, gold) === */
+
+:root {
+    --gold: #c8a84e;
+    --gold-bright: #f0d67a;
+    --gold-dark: #8b6914;
+    --accent: #3f6a2a;          /* forest green */
+    --accent-light: #5c8f3e;
+    --ink: #1a1710;
+    --ink-deep: #0f0c07;
+    --panel-line: rgba(200, 168, 78, 0.22);
+    --parchment: #efe3c4;
+    --text-main: #e8d9b0;
+    --text-dim: #b8a67e;
+    --bg-dark: #0d0b06;
+    --bg-panel: rgba(24, 21, 12, 0.85);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'EB Garamond', 'Cormorant Garamond', Georgia, serif;
+    background: var(--bg-dark);
+    color: var(--text-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(200, 168, 78, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 50% 100%, rgba(63, 106, 42, 0.09) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Faint vine-trellis texture */
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cpath d='M0 20h80M0 34h80M0 48h80M0 62h80' stroke='%233f6a2a' stroke-width='0.3' opacity='0.05'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+}
+
+.icon-border-top {
+    height: 6px;
+    background: linear-gradient(90deg, transparent 0%, var(--gold-dark) 15%, var(--gold-bright) 30%, var(--gold) 50%, var(--gold-bright) 70%, var(--gold-dark) 85%, transparent 100%);
+    position: relative;
+    z-index: 10;
+}
+.icon-border-top::after {
+    content: '';
+    display: block;
+    height: 2px;
+    margin-top: 2px;
+    background: linear-gradient(90deg, transparent 0%, var(--accent) 20%, var(--accent-light) 50%, var(--accent) 80%, transparent 100%);
+}
+
+/* Drifting garden motes */
+.incense-container { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+.smoke-particle {
+    position: absolute;
+    width: 4px; height: 4px;
+    background: radial-gradient(circle, rgba(240, 214, 122, 0.35), transparent);
+    border-radius: 50%;
+    animation: smokeRise linear forwards;
+}
+@keyframes smokeRise {
+    0% { opacity: 0; transform: translateY(0) translateX(0) scale(1); }
+    20% { opacity: 0.4; }
+    100% { opacity: 0; transform: translateY(-420px) translateX(var(--drift)) scale(7); }
+}
+
+header {
+    text-align: center;
+    padding: 2.5rem 1rem 1.2rem;
+    position: relative;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.4rem;
+    flex-wrap: wrap;
+}
+.cross-ornament { font-size: 1.9rem; color: var(--gold); text-shadow: 0 0 15px rgba(200, 168, 78, 0.5); line-height: 1; }
+.cross-ornament.small { font-size: 1.1rem; }
+
+h1 {
+    font-family: 'UnifrakturMaguntia', 'Cinzel', serif;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 400;
+    color: var(--gold-bright);
+    text-shadow: 0 0 20px rgba(240, 214, 122, 0.3), 0 2px 4px rgba(0, 0, 0, 0.5);
+    letter-spacing: 0.04em;
+}
+.subtitle {
+    font-family: 'Cinzel', serif;
+    font-size: 0.95rem;
+    color: var(--text-dim);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+    flex-basis: 100%;
+}
+
+main { max-width: 860px; margin: 0 auto; padding: 0 1.5rem 3rem; position: relative; z-index: 5; }
+
+/* Illuminated-initial frame (inline SVG lives inside) */
+.icon-frame {
+    width: 230px;
+    margin: 0 auto 1.6rem;
+    padding: 12px;
+    background: linear-gradient(145deg, #2c2814, #171208);
+    border: 4px solid var(--gold-dark);
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(200, 168, 78, 0.15), inset 0 0 20px rgba(200, 168, 78, 0.05), 0 8px 32px rgba(0, 0, 0, 0.5);
+    position: relative;
+    cursor: pointer;
+    transition: box-shadow 0.5s ease, transform 0.3s ease;
+    overflow: hidden;
+}
+.icon-frame:hover { box-shadow: 0 0 50px rgba(200, 168, 78, 0.25), inset 0 0 30px rgba(200, 168, 78, 0.08), 0 8px 32px rgba(0, 0, 0, 0.5); transform: scale(1.02); }
+.icon-frame.active { box-shadow: 0 0 60px rgba(240, 214, 122, 0.35), inset 0 0 30px rgba(92, 143, 62, 0.12), 0 8px 32px rgba(0, 0, 0, 0.5); border-color: var(--gold-bright); }
+.icon-frame::before { content: ''; position: absolute; inset: 5px; border: 1px solid var(--gold-dark); border-radius: 4px; opacity: 0.5; pointer-events: none; z-index: 2; }
+.icon-frame svg { width: 100%; height: auto; display: block; position: relative; z-index: 1; }
+
+.controls-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.6rem;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+.ornament-line { display: flex; align-items: center; gap: 0.5rem; margin: 1.1rem 0; }
+.ornament-dot { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; flex-shrink: 0; }
+.ornament-rule { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold-dark), transparent); }
+.ornament-cross { color: var(--gold); font-size: 1rem; flex-shrink: 0; opacity: 0.7; }
+
+.transport { display: flex; justify-content: center; margin: 1.4rem 0; }
+.btn-chant {
+    font-family: 'Cinzel', serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--parchment);
+    background: linear-gradient(145deg, var(--accent), #2c4a1d);
+    border: 2px solid var(--gold-dark);
+    border-radius: 50px;
+    padding: 1rem 2.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    box-shadow: 0 4px 15px rgba(63, 106, 42, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    letter-spacing: 0.05em;
+}
+.btn-chant:hover { background: linear-gradient(145deg, var(--accent-light), var(--accent)); border-color: var(--gold); box-shadow: 0 4px 20px rgba(63, 106, 42, 0.6), 0 0 20px rgba(200, 168, 78, 0.2); transform: translateY(-1px); }
+.btn-chant:active { transform: translateY(1px); }
+.btn-chant.playing { background: linear-gradient(145deg, #6a5410, #3f3208); border-color: var(--gold-bright); animation: glowPulse 3s ease-in-out infinite; }
+@keyframes glowPulse {
+    0%, 100% { box-shadow: 0 4px 20px rgba(139, 105, 20, 0.4), 0 0 20px rgba(240, 214, 122, 0.1); }
+    50% { box-shadow: 0 4px 25px rgba(139, 105, 20, 0.6), 0 0 35px rgba(240, 214, 122, 0.25); }
+}
+.btn-icon { font-size: 1.3rem; }
+
+.control-label { display: block; font-family: 'Cinzel', serif; font-size: 0.82rem; color: var(--text-dim); letter-spacing: 0.1em; margin-bottom: 0.55rem; text-transform: uppercase; }
+.control-group { margin-bottom: 1.1rem; }
+
+.mode-selector { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.mode-btn, .choir-btn, .inst-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    background: rgba(40, 36, 18, 0.6);
+    border: 1px solid var(--panel-line);
+    border-radius: 6px;
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 46px;
+    text-align: center;
+}
+.mode-btn:hover, .choir-btn:hover, .inst-btn:hover { background: rgba(92, 143, 62, 0.14); border-color: var(--gold-dark); }
+.mode-btn.active, .choir-btn.active, .inst-btn.active { color: var(--gold-bright); background: rgba(200, 168, 78, 0.15); border-color: var(--gold); box-shadow: 0 0 10px rgba(200, 168, 78, 0.15); }
+.mode-btn small, .inst-btn small { display: block; font-size: 0.62rem; letter-spacing: 0.03em; opacity: 0.75; margin-top: 2px; }
+
+.sliders-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 2rem; }
+@media (max-width: 600px) { .sliders-grid { grid-template-columns: 1fr; } }
+
+.slider {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 6px;
+    background: linear-gradient(90deg, var(--ink-deep), #33301a);
+    border-radius: 3px; outline: none;
+    border: 1px solid rgba(200, 168, 78, 0.15);
+}
+.slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; background: radial-gradient(circle at 40% 40%, var(--gold-bright), var(--gold-dark)); border-radius: 50%; cursor: pointer; border: 2px solid var(--gold); box-shadow: 0 0 8px rgba(200, 168, 78, 0.3); }
+.slider::-webkit-slider-thumb:hover { box-shadow: 0 0 15px rgba(200, 168, 78, 0.5); }
+.slider::-moz-range-thumb { width: 20px; height: 20px; background: radial-gradient(circle at 40% 40%, var(--gold-bright), var(--gold-dark)); border-radius: 50%; cursor: pointer; border: 2px solid var(--gold); box-shadow: 0 0 8px rgba(200, 168, 78, 0.3); }
+
+.visualization-frame { background: var(--bg-panel); border: 1px solid var(--panel-line); border-radius: 12px; padding: 1rem; overflow: hidden; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3); margin-bottom: 1.6rem; }
+#vizCanvas { width: 100%; height: 160px; display: block; border-radius: 6px; }
+
+/* About-this-style panel */
+.about-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 12px;
+    padding: 1.8rem 2rem;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+    line-height: 1.65;
+}
+.about-panel h2 { font-family: 'Cinzel', serif; font-size: 1rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold-bright); margin-bottom: 0.4rem; }
+.about-panel .era { font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent-light); margin-bottom: 1rem; }
+.about-panel p { color: var(--text-dim); font-size: 1.02rem; margin-bottom: 0.9rem; }
+.about-panel p:last-child { margin-bottom: 0; }
+.about-panel .drop { color: var(--gold-bright); font-weight: 600; }
+.lineage { margin-top: 1.2rem; padding-top: 1.1rem; border-top: 1px solid var(--panel-line); }
+.lineage h3 { font-family: 'Cinzel', serif; font-size: 0.78rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 0.7rem; }
+.lineage-chain { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; font-family: 'Cinzel', serif; font-size: 0.72rem; letter-spacing: 0.04em; }
+.lineage-chain a, .lineage-chain span.node { color: var(--text-dim); text-decoration: none; padding: 0.3rem 0.6rem; border: 1px solid var(--panel-line); border-radius: 5px; transition: all 0.2s ease; white-space: nowrap; }
+.lineage-chain a:hover { color: var(--gold-bright); border-color: var(--gold); }
+.lineage-chain span.node.current { color: var(--ink); background: var(--gold); border-color: var(--gold); font-weight: 600; }
+.lineage-chain .arrow { color: var(--gold-dark); }
+
+footer { text-align: center; padding: 2rem 1rem 3rem; position: relative; z-index: 5; }
+footer p { font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--text-dim); letter-spacing: 0.15em; margin-top: 0.5rem; }
+footer .latin { font-family: 'EB Garamond', serif; font-style: italic; font-size: 0.85rem; color: var(--gold-dark); margin-top: 0.3rem; }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-dark); }
+::-webkit-scrollbar-thumb { background: var(--gold-dark); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+::selection { background: rgba(92, 143, 62, 0.3); color: var(--parchment); }
+
+
+/* mobile safe areas */
+body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.mode-btn, .choir-btn, .btn-chant { min-height: 44px; }
+.icon-frame { width: 180px; }
+main { padding-left: 1rem; padding-right: 1rem; }
+</style>
+</head>
+<body>
+    <div class="icon-border-top"></div>
+    <div class="incense-container" id="incenseContainer"></div>
+
+    <header>
+        <div class="cross-ornament">&#x2740;</div>
+        <h1>Synth Estampie</h1>
+        <p class="subtitle">Medieval Dance &#8226; Physical-Modelling Strings</p>
+        <div class="cross-ornament">&#x2740;</div>
+    </header>
+
+    <main>
+        <!-- Illuminated initial -->
+        <div class="icon-frame" id="mainIcon">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illuminated initial E">
+                <defs>
+                    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0" stop-color="#f0d67a"/><stop offset="0.5" stop-color="#c8a84e"/><stop offset="1" stop-color="#8b6914"/>
+                    </linearGradient>
+                    <radialGradient id="halo" cx="0.5" cy="0.4" r="0.7">
+                        <stop offset="0" stop-color="#3f5a2a"/><stop offset="1" stop-color="#20180c"/>
+                    </radialGradient>
+                </defs>
+                <rect x="8" y="8" width="184" height="184" rx="6" fill="url(#halo)" stroke="#8b6914" stroke-width="2"/>
+                <rect x="16" y="16" width="168" height="168" rx="4" fill="none" stroke="#3f6a2a" stroke-width="1.5" opacity="0.7"/>
+                <!-- vine & leaf flourishes (garden / secular) -->
+                <path d="M28 30 q20 -14 44 -4 M172 30 q-20 -14 -44 -4 M28 170 q20 14 44 4 M172 170 q-20 14 -44 4" fill="none" stroke="#c8a84e" stroke-width="1.4" opacity="0.55"/>
+                <circle cx="30" cy="30" r="3.5" fill="#5c8f3e"/><circle cx="170" cy="30" r="3.5" fill="#5c8f3e"/>
+                <circle cx="30" cy="170" r="3.5" fill="#5c8f3e"/><circle cx="170" cy="170" r="3.5" fill="#5c8f3e"/>
+                <!-- initial E -->
+                <text x="100" y="140" text-anchor="middle" font-family="UnifrakturMaguntia, serif" font-size="150" fill="url(#gold)" stroke="#5a4408" stroke-width="1.2">E</text>
+                <!-- a bowed string with two pegs -->
+                <g opacity="0.85" stroke="#e8d9b0" stroke-width="1.4">
+                    <line x1="52" y1="64" x2="148" y2="76"/>
+                </g>
+                <circle cx="52" cy="64" r="3" fill="#7a5a14"/><circle cx="148" cy="76" r="3" fill="#7a5a14"/>
+                <path d="M60 58 q40 6 84 14" fill="none" stroke="#5c8f3e" stroke-width="1.2" opacity="0.6"/>
+            </svg>
+        </div>
+
+        <div class="controls-panel">
+            <div class="ornament-line"><span class="ornament-dot"></span><span class="ornament-rule"></span><span class="ornament-cross">&#x2740;</span><span class="ornament-rule"></span><span class="ornament-dot"></span></div>
+
+            <div class="transport">
+                <button class="btn-chant" id="btnChant" onclick="toggleChant()">
+                    <span class="btn-icon">&#x266A;</span>
+                    <span class="btn-text">Begin Dance</span>
+                </button>
+            </div>
+
+            <!-- Church tones -->
+            <div class="control-group">
+                <label class="control-label">&#x2726; Mode (Church Tone)</label>
+                <div class="mode-selector">
+                    <button class="mode-btn active" data-mode="1" onclick="setMode(1)">I<small>Dorian</small></button>
+                    <button class="mode-btn" data-mode="2" onclick="setMode(2)">II<small>Hypodor.</small></button>
+                    <button class="mode-btn" data-mode="3" onclick="setMode(3)">III<small>Phrygian</small></button>
+                    <button class="mode-btn" data-mode="4" onclick="setMode(4)">IV<small>Hypophr.</small></button>
+                    <button class="mode-btn" data-mode="5" onclick="setMode(5)">V<small>Lydian</small></button>
+                    <button class="mode-btn" data-mode="6" onclick="setMode(6)">VI<small>Hypolyd.</small></button>
+                    <button class="mode-btn" data-mode="7" onclick="setMode(7)">VII<small>Mixolyd.</small></button>
+                    <button class="mode-btn" data-mode="8" onclick="setMode(8)">VIII<small>Hypomix.</small></button>
+                </div>
+            </div>
+
+            <div class="sliders-grid">
+                <div class="control-group"><label class="control-label">&#x2726; Drone</label><input type="range" class="slider" id="droneVol" min="0" max="100" value="50" oninput="updateDrone()"></div>
+                <div class="control-group"><label class="control-label">&#x2726; Strings</label><input type="range" class="slider" id="stringVol" min="0" max="100" value="75" oninput="updateStrings()"></div>
+                <div class="control-group"><label class="control-label">&#x2726; Courtyard Reverb</label><input type="range" class="slider" id="reverbMix" min="0" max="100" value="45" oninput="updateReverb()"></div>
+                <div class="control-group"><label class="control-label">&#x2726; Tempo</label><input type="range" class="slider" id="tempoSlider" min="80" max="160" value="112" oninput="updateTempo()"></div>
+            </div>
+
+            <!-- Physical model that carries the melody -->
+            <div class="control-group">
+                <label class="control-label">&#x2726; Instrument</label>
+                <div class="mode-selector">
+                    <button class="inst-btn" data-inst="vielle" onclick="setInstrument('vielle')">Vielle<small>bowed</small></button>
+                    <button class="inst-btn" data-inst="psaltery" onclick="setInstrument('psaltery')">Psaltery<small>plucked</small></button>
+                    <button class="inst-btn active" data-inst="both" onclick="setInstrument('both')">Both<small>consort</small></button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">&#x2726; Ensemble</label>
+                <div class="mode-selector">
+                    <button class="choir-btn active" data-voices="1" onclick="setVoices(1)">Solo</button>
+                    <button class="choir-btn" data-voices="2" onclick="setVoices(2)">Duo</button>
+                    <button class="choir-btn" data-voices="3" onclick="setVoices(3)">Consort</button>
+                </div>
+            </div>
+
+            <div class="ornament-line"><span class="ornament-dot"></span><span class="ornament-rule"></span><span class="ornament-cross">&#x2740;</span><span class="ornament-rule"></span><span class="ornament-dot"></span></div>
+        </div>
+
+        <div class="visualization-frame">
+            <canvas id="vizCanvas" width="800" height="200"></canvas>
+        </div>
+
+        <!-- About this style -->
+        <div class="about-panel">
+            <h2>About the Estampie</h2>
+            <div class="era">Medieval instrumental dance &#8226; 13th&ndash;14th century &#8226; secular</div>
+            <p><span class="drop">T</span>he <em>estampie</em> is one of the earliest surviving purely <em>instrumental</em> forms of Western music &mdash; a lively courtly dance with no words, built to be played and danced rather than sung. Alongside its cousins the <em>saltarello</em> and <em>ductia</em>, it was struck up on vielle, psaltery, hurdy-gurdy and bagpipes wherever a court took to the floor.</p>
+            <p>Its form is a chain of repeated <em>puncta</em>: each phrase is played twice, first with an <em>open</em> (<em>ouvert</em>) ending that hangs unresolved, then with a <em>closed</em> (<em>clos</em>) ending that lands home. The few that were written down survive in the <em>Robertsbridge Codex</em> and the <em>Manuscrit du Roi</em>. This engine recreates the instruments themselves with <em>physical modelling</em>: Karplus&ndash;Strong waveguide strings over a droning open fifth.</p>
+            <div class="lineage">
+                <h3>Where it sits in the lineage</h3>
+                <p>The estampie sits on the <em>secular, instrumental</em> branch of early music. It grew out of the sung monophony of the <em>troubadours</em> and <em>trouvères</em> &mdash; when their melodies stepped off the page and onto the dance floor &mdash; and so it stands apart from the sacred chant&rarr;polyphony line that runs through organum and the Ars Nova.</p>
+                <div class="lineage-chain">
+                    <a href="https://brendanjameslynskey.github.io/Synth_Gregorian/">Plainsong</a>
+                    <span class="arrow">&rarr;</span>
+                    <a href="https://brendanjameslynskey.github.io/Synth_Organum/">Organum</a>
+                    <span class="arrow">&rarr;</span>
+                    <a href="https://brendanjameslynskey.github.io/Synth_ArsNova/">Ars Nova</a>
+                    <span class="arrow">&#8231;&#8231;&#8231;</span>
+                    <a href="https://brendanjameslynskey.github.io/Synth_Troubadour/">Troubadour</a>
+                    <span class="arrow">&rarr;</span>
+                    <span class="node current">Estampie</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="cross-ornament small">&#x2740;</div>
+        <p>Ductia est cantilena levis et velox</p>
+        <p class="latin">A ductia is a light and quick dance-song</p>
+    </footer>
+
+    <script>
+/**
+ * Estampie Synthesis Engine — Physical Modelling (waveguide strings + drone)
+ *
+ * Where the chant engine synthesizes a *voice*, this engine synthesizes the
+ * *instruments* of a medieval dance band with real physical models — no
+ * oscillator-as-a-string shortcuts:
+ *
+ *   - PSALTERY / LUTE : a genuine Karplus–Strong plucked-string waveguide —
+ *       a feedback loop of a DelayNode (delay = 1 / frequency) + an in-loop
+ *       damping lowpass BiquadFilter + a feedback GainNode (< 1.0), excited by
+ *       a short filtered noise burst. Pitch is the delay length; brightness and
+ *       decay are the loop-filter cutoff and the feedback gain.
+ *   - VIELLE / REBEC  : a bowed string — a sustained sawtooth excitation driven
+ *       through a strong resonant body band-pass, with a bow-noise component,
+ *       a slow singing attack and a blooming vibrato: continuous, not plucked.
+ *   - DRONE           : a hurdy-gurdy / bagpipe open fifth (tonic + fifth) held
+ *       under everything, coloured by a wooden soundbox and given a subtle
+ *       rhythmic trompette "buzz".
+ *
+ * Every instrument passes through a shared BODY-RESONANCE stage — a small bank
+ * of peaking filters modelling a resonant wooden box — so the strings sing like
+ * carved instruments rather than raw tones.
+ *
+ * On top of that: the 8 medieval church tones, a dance FORM engine that lays
+ * out *puncta* each played twice with an open (ouvert) then closed (clos)
+ * ending, a leaping compound/triple rhythm, a solo→consort ensemble, and a
+ * stone courtyard convolution reverb.
+ */
+
+class EstampieEngine {
+    constructor() {
+        this.ctx = null;
+        this.isPlaying = false;
+        this.currentMode = 1;
+        this.instrument = 'both';        // 'vielle' | 'psaltery' | 'both'
+        this.numVoices = 1;              // solo / consort layers on the melody
+        this.tempo = 112;               // dance tactus, bpm
+        this.droneVolume = 0.5;
+        this.stringVolume = 0.75;
+        this.reverbMix = 0.45;
+
+        this.active = [];                // live melody note handles
+        this.droneNodes = [];            // live drone oscillators / lfos
+        this.stepTimeout = null;
+
+        this.masterGain = null;
+        this.compressor = null;
+        this.mixBus = null;
+        this.instrumentBus = null;
+        this.droneBus = null;
+        this.dryGain = null;
+        this.reverbGain = null;
+        this.convolver = null;
+        this.analyser = null;
+        this.noiseBuffer = null;
+        this.ksCeiling = 340;            // top pitch the KS delay loop can hold
+
+        // E3 — a grounded medieval instrumental register; the whole diatonic
+        // octave above it stays under the Karplus–Strong delay-loop ceiling.
+        this.basePitch = 164.81;
+
+        // === The 8 medieval church tones (same shape as the chant engine) ===
+        // intervals: cents from the finalis; the melody dances within them.
+        this.modes = {
+            1: { name: "Dorian",        intervals: [0,200,300,500,700,900,1000,1200], finalis: 0, tenor: 4, up: 5 },
+            2: { name: "Hypodorian",    intervals: [0,200,300,500,700,900,1000,1200], finalis: 0, tenor: 2, up: 4 },
+            3: { name: "Phrygian",      intervals: [0,100,300,500,700,800,1000,1200], finalis: 0, tenor: 5, up: 6 },
+            4: { name: "Hypophrygian",  intervals: [0,100,300,500,700,800,1000,1200], finalis: 0, tenor: 3, up: 5 },
+            5: { name: "Lydian",        intervals: [0,200,400,600,700,900,1100,1200], finalis: 0, tenor: 4, up: 6 },
+            6: { name: "Hypolydian",    intervals: [0,200,400,600,700,900,1100,1200], finalis: 0, tenor: 2, up: 4 },
+            7: { name: "Mixolydian",    intervals: [0,200,400,500,700,900,1000,1200], finalis: 0, tenor: 4, up: 6 },
+            8: { name: "Hypomixolydian",intervals: [0,200,400,500,700,900,1000,1200], finalis: 0, tenor: 3, up: 5 }
+        };
+
+        this.sequence = [];
+        this.pos = 0;
+    }
+
+    async init() {
+        if (this.ctx) return;
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = this.ctx;
+
+        // A gentle limiter guards the analyser peak while keeping the dance lively.
+        this.compressor = ctx.createDynamicsCompressor();
+        this.compressor.threshold.value = -10;
+        this.compressor.knee.value = 6;
+        this.compressor.ratio.value = 6;
+        this.compressor.attack.value = 0.003;
+        this.compressor.release.value = 0.25;
+        this.compressor.connect(ctx.destination);
+
+        this.masterGain = ctx.createGain();
+        this.masterGain.gain.value = 0.9;
+        this.masterGain.connect(this.compressor);
+
+        this.analyser = ctx.createAnalyser();
+        this.analyser.fftSize = 2048;
+        this.analyser.smoothingTimeConstant = 0.82;
+        this.compressor.connect(this.analyser);
+
+        // Shared white-noise source material for pluck bursts and bow air.
+        this.noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const nd = this.noiseBuffer.getChannelData(0);
+        for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+
+        // The Karplus–Strong delay loop cannot hold a period shorter than one
+        // render quantum; keep a margin so melody notes tune true.
+        this.ksCeiling = ctx.sampleRate / 128 * 0.98;
+
+        await this.createReverb();
+
+        // === Signal routing ===
+        //   instruments → body resonance ┐
+        //   drone       → body resonance ┴→ mixBus → dry ─┐
+        //                                        └→ reverb┴→ master → limiter → out
+        this.mixBus = ctx.createGain();
+        this.mixBus.gain.value = 1.0;
+
+        this.dryGain = ctx.createGain();
+        this.dryGain.gain.value = 1 - this.reverbMix * 0.5;
+        this.reverbGain = ctx.createGain();
+        this.reverbGain.gain.value = this.reverbMix;
+
+        this.mixBus.connect(this.dryGain);
+        this.mixBus.connect(this.convolver);
+        this.dryGain.connect(this.masterGain);
+        this.convolver.connect(this.reverbGain);
+        this.reverbGain.connect(this.masterGain);
+
+        // Melody strings through a shared wooden body.
+        this.instrumentBus = ctx.createGain();
+        this.instrumentBus.gain.value = this.stringVolume;
+        const body = this.makeBody([[240, 4, 3.5], [430, 3, 2.5], [1150, 2.2, 2]]);
+        this.instrumentBus.connect(body.input);
+        body.output.connect(this.mixBus);
+
+        // Drone through its own larger soundbox.
+        this.droneBus = ctx.createGain();
+        this.droneBus.gain.value = this.droneVolume;
+        const dBody = this.makeBody([[150, 5, 4], [300, 4, 3], [620, 3, 2]]);
+        this.droneBus.connect(dBody.input);
+        dBody.output.connect(this.mixBus);
+    }
+
+    /**
+     * A wooden body: a short chain of peaking resonances modelling the box.
+     * Returns {input, output} so a whole bus can be coloured at once.
+     */
+    makeBody(peaks) {
+        const ctx = this.ctx;
+        const input = ctx.createGain();
+        let node = input;
+        for (const [freq, q, gainDb] of peaks) {
+            const bq = ctx.createBiquadFilter();
+            bq.type = 'peaking';
+            bq.frequency.value = freq;
+            bq.Q.value = q;
+            bq.gain.value = gainDb;
+            node.connect(bq);
+            node = bq;
+        }
+        const output = ctx.createGain();
+        output.gain.value = 0.9;
+        node.connect(output);
+        return { input, output };
+    }
+
+    /** Stone courtyard — a ~3.5 s tail with a scatter of early reflections. */
+    async createReverb() {
+        const sr = this.ctx.sampleRate;
+        const length = Math.floor(sr * 3.5);
+        const impulse = this.ctx.createBuffer(2, length, sr);
+        const reflections = [0.009, 0.019, 0.031, 0.047, 0.063, 0.083, 0.107, 0.134];
+        for (let ch = 0; ch < 2; ch++) {
+            const data = impulse.getChannelData(ch);
+            for (let i = 0; i < length; i++) {
+                const t = i / sr;
+                const env = Math.exp(-t * 1.1) * 0.4 + Math.exp(-t * 0.5) * 0.38 + Math.exp(-t * 0.24) * 0.22;
+                data[i] = (Math.random() * 2 - 1) * env;
+                if (i < sr * 0.18) {
+                    for (const d of reflections) {
+                        if (i === Math.floor(d * sr)) data[i] += (Math.random() * 2 - 1) * 0.32;
+                    }
+                }
+            }
+        }
+        this.convolver = this.ctx.createConvolver();
+        this.convolver.buffer = impulse;
+    }
+
+    centsToFreq(cents) { return this.basePitch * Math.pow(2, cents / 1200); }
+
+    /** Keep a pitch inside the plucked-string delay-loop range. */
+    clampKs(freq) {
+        let f = freq;
+        while (f > this.ksCeiling) f /= 2;
+        return f;
+    }
+
+    degToFreq(deg) {
+        const m = this.modes[this.currentMode];
+        const idx = ((deg % 8) + 8) % 8;
+        const oct = Math.floor(deg / 8);
+        return this.centsToFreq(m.intervals[idx]) * Math.pow(2, oct);
+    }
+
+    // === Physical models ===
+
+    /**
+     * Karplus–Strong plucked string. A DelayNode tuned to the note's period
+     * feeds a damping lowpass and a sub-unity feedback gain back into itself;
+     * a brief filtered noise burst plucks it into life. Bright notes keep more
+     * loop-filter high end and ring longer.
+     */
+    pluckString(freq, dur, t0, level) {
+        const ctx = this.ctx;
+        const f = this.clampKs(freq);
+        const period = 1 / f;
+
+        const delay = ctx.createDelay(0.1);
+        delay.delayTime.value = period;
+
+        const loopFilter = ctx.createBiquadFilter();
+        loopFilter.type = 'lowpass';
+        loopFilter.frequency.value = Math.min(7000, Math.max(1600, f * 6));
+        loopFilter.Q.value = 0.2;
+
+        const feedback = ctx.createGain();
+        feedback.gain.value = 0.965;              // < 1.0 → the string decays
+
+        // The waveguide loop: delay → damping → feedback → delay.
+        delay.connect(loopFilter);
+        loopFilter.connect(feedback);
+        feedback.connect(delay);
+
+        // Excitation: one period's worth of band-limited noise, plucking the loop.
+        const burstLen = Math.max(period, 0.006);
+        const src = ctx.createBufferSource();
+        src.buffer = this.noiseBuffer;
+        src.loop = true;
+        const exFilter = ctx.createBiquadFilter();
+        exFilter.type = 'lowpass';
+        exFilter.frequency.value = Math.min(8000, f * 10);
+        const exGain = ctx.createGain();
+        exGain.gain.setValueAtTime(0.9, t0);
+        exGain.gain.setValueAtTime(0.9, t0 + burstLen * 0.7);
+        exGain.gain.linearRampToValueAtTime(0, t0 + burstLen);
+        src.connect(exFilter); exFilter.connect(exGain); exGain.connect(delay);
+
+        // Output envelope — the plucked decay on top of the loop's own damping.
+        const out = ctx.createGain();
+        const ring = Math.min(2.2, Math.max(dur * 1.3, 0.55));
+        out.gain.setValueAtTime(0.0001, t0);
+        out.gain.linearRampToValueAtTime(level, t0 + 0.005);
+        out.gain.exponentialRampToValueAtTime(0.0001, t0 + ring);
+        delay.connect(out);
+        out.connect(this.instrumentBus);
+
+        src.start(t0, Math.random() * 1.5, burstLen + 0.02);
+        // Damp the loop before teardown so it never clicks off mid-ring.
+        feedback.gain.setValueAtTime(0.965, t0 + ring * 0.6);
+        feedback.gain.linearRampToValueAtTime(0, t0 + ring);
+
+        const handle = { gain: out, oscs: [], srcs: [src], nodes: [delay, loopFilter, feedback, exFilter, exGain, out], tEnd: t0 + ring + 0.05 };
+        this.register(handle);
+    }
+
+    /**
+     * Bowed string (vielle / rebec). A sawtooth is driven through a resonant
+     * body band-pass and blended with bow noise; a slow attack and blooming
+     * vibrato give it a sustained, singing character quite unlike the pluck.
+     */
+    bowString(freq, dur, t0, level) {
+        const ctx = this.ctx;
+
+        const osc = ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.value = freq;
+
+        // Direct tone path — a gentle lowpass tames the raw saw.
+        const tone = ctx.createBiquadFilter();
+        tone.type = 'lowpass';
+        tone.frequency.value = Math.min(6500, freq * 7);
+        tone.Q.value = 0.6;
+
+        // Resonant body path — the strong band-pass that sings.
+        const bodyBp = ctx.createBiquadFilter();
+        bodyBp.type = 'bandpass';
+        bodyBp.frequency.value = 620;
+        bodyBp.Q.value = 3.2;
+        const bodyGain = ctx.createGain();
+        bodyGain.gain.value = 1.3;
+
+        const amp = ctx.createGain();
+        const attack = Math.min(0.09, dur * 0.4);
+        const release = Math.max(0.14, dur * 0.5);
+        amp.gain.setValueAtTime(0.0001, t0);
+        amp.gain.linearRampToValueAtTime(level, t0 + attack);
+        amp.gain.setValueAtTime(level * 0.92, t0 + Math.max(attack, dur * 0.75));
+        amp.gain.exponentialRampToValueAtTime(0.0001, t0 + dur + release);
+
+        osc.connect(tone); tone.connect(amp);
+        osc.connect(bodyBp); bodyBp.connect(bodyGain); bodyGain.connect(amp);
+
+        // Bow noise — the hairs biting the string.
+        const noise = ctx.createBufferSource();
+        noise.buffer = this.noiseBuffer; noise.loop = true;
+        const nf = ctx.createBiquadFilter();
+        nf.type = 'bandpass'; nf.frequency.value = 3200; nf.Q.value = 0.8;
+        const ng = ctx.createGain();
+        ng.gain.setValueAtTime(0.0001, t0);
+        ng.gain.linearRampToValueAtTime(level * 0.09, t0 + attack);
+        ng.gain.linearRampToValueAtTime(level * 0.02, t0 + dur + release);
+        noise.connect(nf); nf.connect(ng); ng.connect(amp);
+
+        amp.connect(this.instrumentBus);
+
+        // Vibrato blooms once the bow is speaking.
+        const vib = ctx.createOscillator();
+        vib.type = 'sine';
+        vib.frequency.value = 5 + Math.random() * 1.2;
+        const vibDepth = ctx.createGain();
+        vibDepth.gain.value = freq * 0.006;
+        vib.connect(vibDepth); vibDepth.connect(osc.frequency);
+
+        const tEnd = t0 + dur + release;
+        osc.start(t0); osc.stop(tEnd + 0.05);
+        noise.start(t0, Math.random() * 1.5); noise.stop(tEnd + 0.05);
+        vib.start(t0 + attack); vib.stop(tEnd + 0.05);
+
+        const handle = { gain: amp, oscs: [osc, vib], srcs: [noise], nodes: [tone, bodyBp, bodyGain, amp, nf, ng, vibDepth], tEnd: tEnd + 0.1 };
+        this.register(handle);
+    }
+
+    register(handle) {
+        this.active.push(handle);
+        const ms = (handle.tEnd - this.ctx.currentTime) * 1000 + 60;
+        handle.timer = setTimeout(() => {
+            for (const n of handle.nodes) { try { n.disconnect(); } catch (e) {} }
+            const idx = this.active.indexOf(handle);
+            if (idx > -1) this.active.splice(idx, 1);
+        }, Math.max(60, ms));
+    }
+
+    // === Drone: hurdy-gurdy / bagpipe open fifth ===
+
+    startDrone() {
+        const ctx = this.ctx;
+        const now = ctx.currentTime;
+        const tonic = this.basePitch;
+        const fifth = this.basePitch * Math.pow(2, 700 / 1200);
+
+        const droneGain = ctx.createGain();
+        droneGain.gain.setValueAtTime(0.0001, now);
+        droneGain.gain.linearRampToValueAtTime(0.5, now + 2.0);
+        droneGain.connect(this.droneBus);
+
+        // A rhythmic trompette buzz — the hurdy-gurdy's dog barking on the beat.
+        const buzz = ctx.createOscillator();
+        buzz.type = 'sine';
+        buzz.frequency.value = this.tempo / 60;      // one buzz per tactus
+        const buzzDepth = ctx.createGain();
+        buzzDepth.gain.value = 0.14;
+        const buzzOffset = ctx.createConstantSource();
+        buzzOffset.offset.value = 0.86;
+        buzz.connect(buzzDepth); buzzDepth.connect(droneGain.gain);
+        buzzOffset.connect(droneGain.gain);
+        buzz.start(now); buzzOffset.start(now);
+
+        this.droneNodes.push(buzz, buzzOffset);
+        this.droneGainNode = droneGain;
+
+        // Two reed-like sawtooths per pitch, slightly detuned, for a chorusing
+        // open fifth. A soft lowpass keeps them woody, not buzzy-harsh.
+        for (const [freq, lvl] of [[tonic, 0.5], [fifth, 0.42], [tonic * 0.5, 0.3]]) {
+            for (const det of [-6, 6]) {
+                const osc = ctx.createOscillator();
+                osc.type = 'sawtooth';
+                osc.frequency.value = freq;
+                osc.detune.value = det;
+                const lp = ctx.createBiquadFilter();
+                lp.type = 'lowpass';
+                lp.frequency.value = Math.min(2600, freq * 9);
+                lp.Q.value = 0.5;
+                const g = ctx.createGain();
+                g.gain.value = lvl * 0.5;
+                osc.connect(lp); lp.connect(g); g.connect(droneGain);
+                osc.start(now);
+                this.droneNodes.push(osc, lp, g);
+            }
+        }
+    }
+
+    stopDrone() {
+        const ctx = this.ctx;
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        if (this.droneGainNode) {
+            try {
+                this.droneGainNode.gain.cancelScheduledValues(now);
+                this.droneGainNode.gain.setValueAtTime(this.droneGainNode.gain.value, now);
+                this.droneGainNode.gain.linearRampToValueAtTime(0.0001, now + 1.0);
+            } catch (e) {}
+        }
+        const nodes = this.droneNodes;
+        this.droneNodes = [];
+        this.droneGainNode = null;
+        setTimeout(() => {
+            for (const n of nodes) {
+                try { n.stop && n.stop(); } catch (e) {}
+                try { n.disconnect(); } catch (e) {}
+            }
+        }, 1200);
+    }
+
+    // === Dance FORM engine: puncta with ouvert / clos endings ===
+
+    /**
+     * Compose an estampie: a run of puncta, each a lively melodic gesture that
+     * is stated twice — first with an *open* (ouvert) ending that hangs above
+     * the finalis, then with a *closed* (clos) ending that settles home.
+     */
+    buildEstampie() {
+        const m = this.modes[this.currentMode];
+        const seq = [];
+        const puncta = 2 + Math.floor(Math.random() * 2);   // 2–3 puncta
+
+        // Endings: ouvert leaves us hanging a step up; clos lands, lengthened.
+        const ouvert = [{ deg: 2, len: 0.5 }, { deg: 1, len: 1.5 }];
+        const clos   = [{ deg: 1, len: 0.5 }, { deg: 0, len: 2.0 }];
+
+        for (let p = 0; p < puncta; p++) {
+            const body = this.genPunctum(m, p);
+            seq.push(...body, ...ouvert);   // ...primo: open
+            seq.push(...body, ...clos);     // ...secundo: closed
+        }
+
+        this.sequence = seq;
+        this.pos = 0;
+    }
+
+    /** One punctum's melodic body — leaping compound-metre dance figures. */
+    genPunctum(m, p) {
+        const body = [];
+        const top = Math.max(4, m.up + 1);
+        // Compound/triple groupings of longs and quick leaping shorts.
+        const cells = [
+            [{ deg: 0, len: 1 }, { deg: 2, len: 0.5 }, { deg: 4, len: 0.5 }],
+            [{ deg: 4, len: 0.5 }, { deg: 5, len: 0.5 }, { deg: 4, len: 1 }],
+            [{ deg: 3, len: 0.5 }, { deg: 1, len: 0.5 }, { deg: 2, len: 1 }],
+            [{ deg: 4, len: 0.5 }, { deg: 2, len: 0.5 }, { deg: 3, len: 0.5 }, { deg: 1, len: 0.5 }]
+        ];
+        const bars = 2 + Math.floor(Math.random() * 2);
+        let last = p % 2 === 0 ? 0 : 4;
+        for (let b = 0; b < bars; b++) {
+            const cell = cells[Math.floor(Math.random() * cells.length)];
+            for (const note of cell) {
+                let deg = note.deg + (last > 3 ? 1 : 0);      // saltarello leap upward
+                deg = Math.max(0, Math.min(top, deg));
+                const item = { deg, len: note.len };
+                // A quick plucked/bowed ornament on some longer beats.
+                if (note.len >= 1 && Math.random() < 0.3) {
+                    item.orn = [deg, Math.min(top, deg + 1), deg];
+                }
+                body.push(item);
+                last = deg;
+            }
+        }
+        return body;
+    }
+
+    start() {
+        this.isPlaying = true;
+        this.startDrone();
+        this.buildEstampie();
+        // Let the drone breathe in before the dance strikes up.
+        this.stepTimeout = setTimeout(() => this.step(), 1200);
+    }
+
+    stop() {
+        this.isPlaying = false;
+        if (this.stepTimeout) { clearTimeout(this.stepTimeout); this.stepTimeout = null; }
+        const now = this.ctx ? this.ctx.currentTime : 0;
+        for (const h of this.active) {
+            try {
+                h.gain.gain.cancelScheduledValues(now);
+                h.gain.gain.setValueAtTime(h.gain.gain.value, now);
+                h.gain.gain.linearRampToValueAtTime(0.0001, now + 0.4);
+            } catch (e) {}
+            if (h.timer) clearTimeout(h.timer);
+            setTimeout(() => {
+                for (const o of h.oscs) { try { o.stop(); } catch (e) {} }
+                for (const s of h.srcs) { try { s.stop(); } catch (e) {} }
+                for (const n of h.nodes) { try { n.disconnect(); } catch (e) {} }
+            }, 500);
+        }
+        this.active = [];
+        this.stopDrone();
+    }
+
+    step() {
+        if (!this.isPlaying) return;
+        const item = this.sequence[this.pos];
+        const beat = 60 / this.tempo;
+        const dur = beat * item.len;
+
+        const freqs = item.orn ? item.orn.map(d => this.degToFreq(d)) : [this.degToFreq(item.deg)];
+        const sub = dur / freqs.length;
+        freqs.forEach((freq, i) => this.playMelody(freq, sub, i * sub));
+
+        this.pos++;
+        if (this.pos >= this.sequence.length) this.buildEstampie();
+
+        // Light articulation gap keeps the dance springing without stopping.
+        const gap = beat * 0.05;
+        this.stepTimeout = setTimeout(() => this.step(), (dur + gap) * 1000);
+    }
+
+    /** Play one melodic note across the chosen instrument(s) and voices. */
+    playMelody(freq, dur, delay) {
+        const t0 = this.ctx.currentTime + (delay || 0);
+        for (let v = 0; v < this.numVoices; v++) {
+            const spread = (v - (this.numVoices - 1) / 2);
+            const detune = spread * 7 + (Math.random() - 0.5) * 5;
+            const f = freq * Math.pow(2, detune / 1200);
+            const t = t0 + Math.abs(spread) * 0.012;      // consort strums, not lock-step
+            const lvl = 0.5 / Math.sqrt(this.numVoices);
+
+            if (this.instrument === 'psaltery' || this.instrument === 'both') {
+                this.pluckString(f, dur, t, lvl);
+            }
+            if (this.instrument === 'vielle' || this.instrument === 'both') {
+                this.bowString(f, dur, t, this.instrument === 'both' ? lvl * 0.7 : lvl);
+            }
+        }
+    }
+
+    // === Public transport / control ===
+
+    async begin() {
+        await this.init();
+        if (this.ctx.state === 'suspended') await this.ctx.resume();
+        if (!this.isPlaying) this.start();
+    }
+
+    end() { this.stop(); }
+
+    setMode(mode) {
+        this.currentMode = mode;
+        if (this.isPlaying) this.buildEstampie();
+    }
+
+    setVoices(count) { this.numVoices = count; }
+
+    setInstrument(which) { this.instrument = which; }
+
+    setDroneVolume(v) {
+        this.droneVolume = v;
+        if (this.droneBus) this.droneBus.gain.linearRampToValueAtTime(v, this.ctx.currentTime + 0.2);
+    }
+
+    setStringVolume(v) {
+        this.stringVolume = v;
+        if (this.instrumentBus) this.instrumentBus.gain.linearRampToValueAtTime(v, this.ctx.currentTime + 0.2);
+    }
+
+    setReverbMix(v) {
+        this.reverbMix = v;
+        if (this.reverbGain && this.dryGain) {
+            const now = this.ctx.currentTime;
+            this.reverbGain.gain.linearRampToValueAtTime(v, now + 0.2);
+            this.dryGain.gain.linearRampToValueAtTime(1 - v * 0.5, now + 0.2);
+        }
+    }
+
+    setTempo(bpm) { this.tempo = bpm; }
+
+    getAnalyserData() {
+        if (!this.analyser) return null;
+        const d = new Uint8Array(this.analyser.frequencyBinCount);
+        this.analyser.getByteTimeDomainData(d);
+        return d;
+    }
+    getFrequencyData() {
+        if (!this.analyser) return null;
+        const d = new Uint8Array(this.analyser.frequencyBinCount);
+        this.analyser.getByteFrequencyData(d);
+        return d;
+    }
+}
+
+</script>
+    <script>
+/**
+ * Synth Estampie — UI Controller
+ */
+
+const engine = new EstampieEngine();
+let animationId = null;
+let isDancing = false;
+
+// === Transport ===
+
+async function toggleChant() {
+    const btn = document.getElementById('btnChant');
+    const icon = document.getElementById('mainIcon');
+
+    if (!isDancing) {
+        await engine.begin();
+        isDancing = true;
+        btn.classList.add('playing');
+        btn.querySelector('.btn-text').textContent = 'Rest';
+        btn.querySelector('.btn-icon').textContent = '■';
+        icon.classList.add('active');
+        startVisualization();
+        startMotes();
+    } else {
+        engine.end();
+        isDancing = false;
+        btn.classList.remove('playing');
+        btn.querySelector('.btn-text').textContent = 'Begin Dance';
+        btn.querySelector('.btn-icon').textContent = '♪';
+        icon.classList.remove('active');
+        stopVisualization();
+    }
+}
+
+// === Controls ===
+
+function setMode(mode) {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add('active');
+    engine.setMode(mode);
+}
+
+function setVoices(count) {
+    document.querySelectorAll('.choir-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.choir-btn[data-voices="${count}"]`).classList.add('active');
+    engine.setVoices(count);
+}
+
+function setInstrument(which) {
+    document.querySelectorAll('.inst-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.inst-btn[data-inst="${which}"]`).classList.add('active');
+    engine.setInstrument(which);
+}
+
+function updateDrone() { engine.setDroneVolume(document.getElementById('droneVol').value / 100); }
+function updateStrings() { engine.setStringVolume(document.getElementById('stringVol').value / 100); }
+function updateReverb() { engine.setReverbMix(document.getElementById('reverbMix').value / 100); }
+function updateTempo() { engine.setTempo(parseInt(document.getElementById('tempoSlider').value)); }
+
+// === Visualization: a plucked string ringing in a courtyard of green light ===
+
+function startVisualization() {
+    const canvas = document.getElementById('vizCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    const width = canvas.offsetWidth;
+    const height = canvas.offsetHeight;
+
+    function draw() {
+        animationId = requestAnimationFrame(draw);
+        const waveData = engine.getAnalyserData();
+        const freqData = engine.getFrequencyData();
+        if (!waveData || !freqData) return;
+
+        ctx.fillStyle = 'rgba(10, 12, 7, 0.3)';
+        ctx.fillRect(0, 0, width, height);
+
+        // Two faint drone lines — the open fifth held underneath
+        ctx.strokeStyle = 'rgba(63, 106, 42, 0.16)';
+        ctx.lineWidth = 1;
+        for (let l = 1; l <= 4; l++) {
+            const y = height * (0.25 + l * 0.11);
+            ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(width - 20, y); ctx.stroke();
+        }
+
+        // Frequency bars as strings resonating — green rising into amber
+        const barCount = 72;
+        const barWidth = width / barCount;
+        const freqStep = Math.floor(freqData.length / barCount);
+        for (let i = 0; i < barCount; i++) {
+            const value = freqData[i * freqStep] / 255;
+            const barHeight = value * height * 0.7;
+            const x = i * barWidth;
+            const g = ctx.createLinearGradient(x, height, x, height - barHeight);
+            g.addColorStop(0, `rgba(63, 106, 42, ${0.12 + value * 0.4})`);
+            g.addColorStop(0.5, `rgba(146, 176, 74, ${value * 0.4})`);
+            g.addColorStop(1, `rgba(240, 214, 122, ${value * 0.3})`);
+            ctx.fillStyle = g;
+            ctx.fillRect(x + 1, height - barHeight, barWidth - 2, barHeight);
+        }
+
+        // The vibrating string itself
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(200, 168, 78, 0.65)';
+        ctx.lineWidth = 1.5;
+        const slice = width / waveData.length;
+        let x = 0;
+        for (let i = 0; i < waveData.length; i++) {
+            const v = waveData[i] / 128.0;
+            const y = (v * height) / 2;
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            x += slice;
+        }
+        ctx.stroke();
+    }
+    draw();
+}
+
+function stopVisualization() {
+    if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+    const canvas = document.getElementById('vizCanvas');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.offsetWidth, height = canvas.offsetHeight;
+    let alpha = 1;
+    function fade() {
+        ctx.fillStyle = 'rgba(10, 12, 7, 0.05)';
+        ctx.fillRect(0, 0, width, height);
+        alpha -= 0.02;
+        if (alpha > 0) requestAnimationFrame(fade);
+    }
+    fade();
+}
+
+// === Drifting garden motes (pollen / dust in the courtyard) ===
+
+let motesInterval = null;
+function startMotes() {
+    const container = document.getElementById('incenseContainer');
+    if (motesInterval) return;
+    motesInterval = setInterval(() => {
+        if (!isDancing) return;
+        const p = document.createElement('div');
+        p.className = 'smoke-particle';
+        p.style.left = (30 + Math.random() * (window.innerWidth - 60)) + 'px';
+        p.style.bottom = '0px';
+        p.style.setProperty('--drift', ((Math.random() - 0.5) * 90) + 'px');
+        const dur = 7 + Math.random() * 8;
+        p.style.animationDuration = dur + 's';
+        const s = 3 + Math.random() * 4;
+        p.style.width = s + 'px'; p.style.height = s + 'px';
+        container.appendChild(p);
+        setTimeout(() => p.remove(), dur * 1000);
+    }, 340);
+}
+
+window.addEventListener('resize', () => { if (isDancing) { stopVisualization(); startVisualization(); } });
+
+window.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('vizCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.fillStyle = 'rgba(10, 12, 7, 1)';
+    ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+    ctx.strokeStyle = 'rgba(63, 106, 42, 0.16)';
+    ctx.lineWidth = 1;
+    for (let l = 1; l <= 4; l++) {
+        const y = canvas.offsetHeight * (0.25 + l * 0.11);
+        ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(canvas.offsetWidth - 20, y); ctx.stroke();
+    }
+    ctx.font = '14px Cinzel, serif';
+    ctx.fillStyle = 'rgba(146, 176, 74, 0.4)';
+    ctx.textAlign = 'center';
+    ctx.fillText('Press "Begin Dance" to strike up', canvas.offsetWidth / 2, canvas.offsetHeight / 2 + 4);
+});
+
+</script>
+</body>
+</html>
