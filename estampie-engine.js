@@ -5,11 +5,18 @@
  * *instruments* of a medieval dance band with real physical models — no
  * oscillator-as-a-string shortcuts:
  *
- *   - PSALTERY / LUTE : a genuine Karplus–Strong plucked-string waveguide —
- *       a feedback loop of a DelayNode (delay = 1 / frequency) + an in-loop
- *       damping lowpass BiquadFilter + a feedback GainNode (< 1.0), excited by
- *       a short filtered noise burst. Pitch is the delay length; brightness and
- *       decay are the loop-filter cutoff and the feedback gain.
+ *   - PSALTERY / LUTE : a genuine Karplus–Strong plucked-string waveguide,
+ *       run inside an AudioWorklet: a fractional (allpass-interpolated) delay
+ *       line + an in-loop one-pole damping lowpass + a sub-unity feedback
+ *       coefficient, plucked by preloading the line with a band-limited noise
+ *       burst. Pitch is the *total* loop delay — delay line + interpolator +
+ *       filter phase delay — compensated so every note tunes true at any
+ *       frequency. (A DelayNode feedback loop cannot do this: the render
+ *       graph inserts a full 128-sample quantum of extra latency into every
+ *       cycle, which detunes the string by hundreds of cents and caps the
+ *       playable range at ~sr/256.) Brightness and decay are the loop-filter
+ *       cutoff and the feedback gain; loop gain is < 1 by construction, so
+ *       the string always decays.
  *   - VIELLE / REBEC  : a bowed string — a sustained sawtooth excitation driven
  *       through a strong resonant body band-pass, with a bow-noise component,
  *       a slow singing attack and a blooming vibrato: continuous, not plucked.
@@ -26,6 +33,92 @@
  * ending, a leaping compound/triple rhythm, a solo→consort ensemble, and a
  * stone courtyard convolution reverb.
  */
+
+/**
+ * Karplus–Strong string voice, as an AudioWorklet processor (registered from a
+ * Blob URL — no separate file). One processor = one plucked note.
+ *
+ *  - Fractional tuning: total loop delay = N (line) + η (allpass interpolator)
+ *    + τ (one-pole phase delay at the fundamental) = sampleRate / f exactly.
+ *  - Stability: the loop is delay → allpass (unity magnitude) → one-pole
+ *    lowpass (|H| ≤ 1, DC gain 1) → feedback g < 1, so loop gain < 1 at every
+ *    frequency and the string can only decay.
+ *  - Pluck: the line is preloaded with mean-removed, lowpass-filtered noise.
+ *  - Life cycle: silent until startFrame (sample-accurate onset), fades over
+ *    the last 30 ms and the processor retires itself at endFrame.
+ */
+const KS_STRING_WORKLET = `
+class KSString extends AudioWorkletProcessor {
+    constructor(opts) {
+        super();
+        const o = (opts && opts.processorOptions) || {};
+        const sr = sampleRate;
+        const f = Math.max(20, Math.min(sr * 0.4, o.freq || 220));
+        this.startFrame = Math.max(0, Math.round((o.t0 || 0) * sr));
+        this.endFrame = this.startFrame + Math.round(((o.ring || 1.5) + 0.15) * sr);
+        this.fadeFrames = Math.round(0.03 * sr);
+        this.feedback = Math.min(0.995, Math.max(0.5, o.feedback || 0.965));
+
+        // In-loop damping: one-pole lowpass lp += a*(x - lp).
+        const fc = Math.min(sr * 0.45, Math.max(1200, o.damp || f * 6));
+        this.a = 1 - Math.exp(-2 * Math.PI * fc / sr);
+
+        // Tuning: solve N + eta + tau = sr/f, with tau the one-pole's phase
+        // delay at the fundamental and eta realised by a first-order allpass.
+        const w = 2 * Math.PI * f / sr;
+        const b = 1 - this.a;
+        const tau = Math.atan2(b * Math.sin(w), 1 - b * Math.cos(w)) / w;
+        const D = sr / f;
+        let N = Math.floor(D - tau - 0.1);
+        if (N < 2) N = 2;
+        let eta = D - tau - N;
+        if (eta < 0.05) eta = 0.05;
+        this.apC = (1 - eta) / (1 + eta);
+        this.N = N;
+
+        // The pluck: band-limited noise preloaded into the string, mean-removed
+        // so no DC thud rides the loop, normalised to the excitation amplitude.
+        this.buf = new Float32Array(N);
+        const exA = 1 - Math.exp(-2 * Math.PI * Math.min(8000, f * 10) / sr);
+        let lp = 0, mean = 0;
+        for (let i = 0; i < N; i++) {
+            lp += exA * ((Math.random() * 2 - 1) - lp);
+            this.buf[i] = lp; mean += lp;
+        }
+        mean /= N;
+        let pk = 0;
+        for (let i = 0; i < N; i++) {
+            this.buf[i] -= mean;
+            const v = Math.abs(this.buf[i]); if (v > pk) pk = v;
+        }
+        const amp = (o.amp || 0.8) / (pk || 1);
+        for (let i = 0; i < N; i++) this.buf[i] *= amp;
+
+        this.idx = 0; this.lpState = 0; this.apX1 = 0; this.apY1 = 0;
+    }
+    process(inputs, outputs) {
+        const out = outputs[0][0];
+        if (!out) return currentFrame < this.endFrame;
+        const start = this.startFrame, end = this.endFrame;
+        for (let i = 0; i < out.length; i++) {
+            const fr = currentFrame + i;
+            if (fr < start || fr >= end) { out[i] = 0; continue; }
+            const x = this.buf[this.idx];
+            // fractional delay: first-order allpass
+            const ap = this.apC * (x - this.apY1) + this.apX1;
+            this.apX1 = x; this.apY1 = ap;
+            // damping lowpass, then sub-unity feedback back into the line
+            this.lpState += this.a * (ap - this.lpState);
+            this.buf[this.idx] = this.lpState * this.feedback;
+            this.idx++; if (this.idx >= this.N) this.idx = 0;
+            const rem = end - fr;
+            out[i] = rem < this.fadeFrames ? x * (rem / this.fadeFrames) : x;
+        }
+        return currentFrame + out.length < end;
+    }
+}
+registerProcessor('ks-string', KSString);
+`;
 
 class EstampieEngine {
     constructor() {
@@ -53,7 +146,7 @@ class EstampieEngine {
         this.convolver = null;
         this.analyser = null;
         this.noiseBuffer = null;
-        this.ksCeiling = 340;            // top pitch the KS delay loop can hold
+        this.ksCeiling = 1500;           // safety guard; set for real in init()
 
         // E3 — a grounded medieval instrumental register; the whole diatonic
         // octave above it stays under the Karplus–Strong delay-loop ceiling.
@@ -81,14 +174,32 @@ class EstampieEngine {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         const ctx = this.ctx;
 
-        // A gentle limiter guards the analyser peak while keeping the dance lively.
+        // === Output safety chain: compressor → trim → soft-clip → out ===
+        // The compressor glues the dance; the trim restores the headroom its
+        // makeup gain spends; the soft clipper is a transparent last-resort
+        // ceiling (identity below 0.7, saturating toward 0.95 — never 1.0).
         this.compressor = ctx.createDynamicsCompressor();
         this.compressor.threshold.value = -10;
         this.compressor.knee.value = 6;
         this.compressor.ratio.value = 6;
         this.compressor.attack.value = 0.003;
         this.compressor.release.value = 0.25;
-        this.compressor.connect(ctx.destination);
+
+        this.outTrim = ctx.createGain();
+        this.outTrim.gain.value = 0.85;
+
+        this.softClip = ctx.createWaveShaper();
+        const curve = new Float32Array(4096);
+        for (let i = 0; i < curve.length; i++) {
+            const x = (i / (curve.length - 1)) * 2 - 1;
+            const ax = Math.abs(x);
+            curve[i] = Math.sign(x) * (ax <= 0.7 ? ax : 0.7 + 0.25 * Math.tanh((ax - 0.7) / 0.25));
+        }
+        this.softClip.curve = curve;
+
+        this.compressor.connect(this.outTrim);
+        this.outTrim.connect(this.softClip);
+        this.softClip.connect(ctx.destination);
 
         this.masterGain = ctx.createGain();
         this.masterGain.gain.value = 0.9;
@@ -97,23 +208,38 @@ class EstampieEngine {
         this.analyser = ctx.createAnalyser();
         this.analyser.fftSize = 2048;
         this.analyser.smoothingTimeConstant = 0.82;
-        this.compressor.connect(this.analyser);
+        this.softClip.connect(this.analyser);
 
         // Shared white-noise source material for pluck bursts and bow air.
         this.noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
         const nd = this.noiseBuffer.getChannelData(0);
         for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
 
-        // The Karplus–Strong delay loop cannot hold a period shorter than one
-        // render quantum; keep a margin so melody notes tune true.
-        this.ksCeiling = ctx.sampleRate / 128 * 0.98;
+        // The plucked string lives in an AudioWorklet so it can tune true at
+        // any pitch. If the worklet cannot load, fall back to the DelayNode
+        // loop — whose cycle carries a whole extra render quantum of latency,
+        // so compensate for it and keep the melody folded into the range the
+        // loop can actually hold.
+        this.ksWorklet = false;
+        try {
+            const url = URL.createObjectURL(new Blob([KS_STRING_WORKLET], { type: 'application/javascript' }));
+            await ctx.audioWorklet.addModule(url);
+            URL.revokeObjectURL(url);
+            this.ksWorklet = true;
+            this.ksCeiling = 1500;                      // sanity guard only
+        } catch (e) {
+            // total loop period = delayTime (min 128 samples) + 128-sample
+            // cycle latency + ~6 samples of loop-filter delay
+            this.ksCycleLatency = (128 + 6) / ctx.sampleRate;
+            this.ksCeiling = ctx.sampleRate / 266;
+        }
 
         await this.createReverb();
 
         // === Signal routing ===
         //   instruments → body resonance ┐
         //   drone       → body resonance ┴→ mixBus → dry ─┐
-        //                                        └→ reverb┴→ master → limiter → out
+        //                └→ reverb┴→ master → compressor → trim → soft-clip → out
         this.mixBus = ctx.createGain();
         this.mixBus.gain.value = 1.0;
 
@@ -208,15 +334,37 @@ class EstampieEngine {
     // === Physical models ===
 
     /**
-     * Karplus–Strong plucked string. A DelayNode tuned to the note's period
-     * feeds a damping lowpass and a sub-unity feedback gain back into itself;
-     * a brief filtered noise burst plucks it into life. Bright notes keep more
-     * loop-filter high end and ring longer.
+     * Karplus–Strong plucked string. The waveguide loop runs inside the
+     * ks-string AudioWorklet (see KS_STRING_WORKLET above) with a fractional,
+     * tuning-compensated delay, so every note — high or low — sounds at its
+     * true pitch and the loop decays by construction. The output envelope
+     * shapes the musical decay on top of the string's own damping.
      */
     pluckString(freq, dur, t0, level) {
         const ctx = this.ctx;
         const f = this.clampKs(freq);
-        const period = 1 / f;
+        const ring = Math.min(2.2, Math.max(dur * 1.3, 0.55));
+
+        if (this.ksWorklet) {
+            const node = new AudioWorkletNode(ctx, 'ks-string', {
+                numberOfInputs: 0,
+                numberOfOutputs: 1,
+                outputChannelCount: [1],
+                processorOptions: { freq: f, t0, ring, feedback: 0.965, amp: 1.7 }
+            });
+            const out = ctx.createGain();
+            out.gain.setValueAtTime(0.0001, t0);
+            out.gain.linearRampToValueAtTime(level, t0 + 0.005);
+            out.gain.exponentialRampToValueAtTime(0.0001, t0 + ring);
+            node.connect(out);
+            out.connect(this.instrumentBus);
+            const handle = { gain: out, oscs: [], srcs: [], nodes: [node, out], tEnd: t0 + ring + 0.05 };
+            this.register(handle);
+            return;
+        }
+
+        // === Fallback: DelayNode loop, compensated for its cycle latency ===
+        const period = Math.max(1 / f - this.ksCycleLatency, 128 / ctx.sampleRate);
 
         const delay = ctx.createDelay(0.1);
         delay.delayTime.value = period;
@@ -250,7 +398,6 @@ class EstampieEngine {
 
         // Output envelope — the plucked decay on top of the loop's own damping.
         const out = ctx.createGain();
-        const ring = Math.min(2.2, Math.max(dur * 1.3, 0.55));
         out.gain.setValueAtTime(0.0001, t0);
         out.gain.linearRampToValueAtTime(level, t0 + 0.005);
         out.gain.exponentialRampToValueAtTime(0.0001, t0 + ring);
@@ -351,10 +498,17 @@ class EstampieEngine {
         const tonic = this.basePitch;
         const fifth = this.basePitch * Math.pow(2, 700 / 1200);
 
+        // Two gain stages so the envelope and the buzz never fight: droneGain
+        // holds the fade-in/out envelope, buzzGain holds the trompette
+        // amplitude modulation (0.86 ± 0.14 → always within [0.72, 1.0]).
         const droneGain = ctx.createGain();
         droneGain.gain.setValueAtTime(0.0001, now);
-        droneGain.gain.linearRampToValueAtTime(0.5, now + 2.0);
-        droneGain.connect(this.droneBus);
+        droneGain.gain.linearRampToValueAtTime(0.8, now + 2.0);
+
+        const buzzGain = ctx.createGain();
+        buzzGain.gain.value = 0;                     // driven entirely by buzz + offset
+        droneGain.connect(buzzGain);
+        buzzGain.connect(this.droneBus);
 
         // A rhythmic trompette buzz — the hurdy-gurdy's dog barking on the beat.
         const buzz = ctx.createOscillator();
@@ -364,12 +518,13 @@ class EstampieEngine {
         buzzDepth.gain.value = 0.14;
         const buzzOffset = ctx.createConstantSource();
         buzzOffset.offset.value = 0.86;
-        buzz.connect(buzzDepth); buzzDepth.connect(droneGain.gain);
-        buzzOffset.connect(droneGain.gain);
+        buzz.connect(buzzDepth); buzzDepth.connect(buzzGain.gain);
+        buzzOffset.connect(buzzGain.gain);
         buzz.start(now); buzzOffset.start(now);
 
-        this.droneNodes.push(buzz, buzzOffset);
+        this.droneNodes.push(buzz, buzzOffset, buzzDepth, buzzGain, droneGain);
         this.droneGainNode = droneGain;
+        this.buzzOsc = buzz;
 
         // Two reed-like sawtooths per pitch, slightly detuned, for a chorusing
         // open fifth. A soft lowpass keeps them woody, not buzzy-harsh.
@@ -406,6 +561,7 @@ class EstampieEngine {
         const nodes = this.droneNodes;
         this.droneNodes = [];
         this.droneGainNode = null;
+        this.buzzOsc = null;
         setTimeout(() => {
             for (const n of nodes) {
                 try { n.stop && n.stop(); } catch (e) {}
@@ -574,7 +730,13 @@ class EstampieEngine {
         }
     }
 
-    setTempo(bpm) { this.tempo = bpm; }
+    setTempo(bpm) {
+        this.tempo = bpm;
+        // Keep the trompette buzz barking on the new tactus.
+        if (this.buzzOsc && this.ctx) {
+            this.buzzOsc.frequency.setTargetAtTime(bpm / 60, this.ctx.currentTime, 0.2);
+        }
+    }
 
     getAnalyserData() {
         if (!this.analyser) return null;
